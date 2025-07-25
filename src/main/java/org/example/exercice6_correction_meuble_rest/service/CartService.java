@@ -57,17 +57,20 @@ public class CartService {
             throw new OutOfStockException("yaplu");
         }
         cart.getItems().add(new CartItem(furniture,quantity));
+        cart.setTotal(cart.getTotal() + furniture.getPrice()*quantity);
         cartRepository.save(cart);
         return CartItemMapper.toDTOs(cart.getItems());
     }
 
     public List<CartItemDisplayDTO> removeCartItemFromCart(UUID cartId, UUID cartItemId) {
         Cart cart = getCart(cartId);
+        CartItem cartItem = cartItemRepository.findById(cartItemId).orElseThrow(() -> new CartItemNotFoundException("CartItem not found"));
         List<CartItem> updatedItems = cart.getItems().stream().filter(item -> !item.getId().equals(cartItemId)).toList();
         if(updatedItems.isEmpty()){
             throw new CartItemNotFoundException("yapa");
         }
         cart.setItems(updatedItems);
+        cart.setTotal(cart.getTotal() - cartItem.getQuantity()*cartItem.getFurniture().getPrice());
         cartItemRepository.deleteById(cartItemId);
         cartRepository.save(cart);
         return CartItemMapper.toDTOs(cart.getItems());
@@ -78,6 +81,7 @@ public class CartService {
         Cart cart = getCart(cartId);
         cartItemRepository.deleteAll(cart.getItems());
         cart.getItems().clear();
+        cart.setTotal(0);
         return cartRepository.save(cart);
     }
 }

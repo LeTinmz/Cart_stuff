@@ -25,5 +25,7 @@ public class CartItem {
     private int quantity;
 
     public CartItem(Furniture furniture, int quantity) {
+        this.furniture=furniture;
+        this.quantity=quantity;
     }
 }
