@@ -1,5 +1,6 @@
 package org.example.exercice6_correction_meuble_rest.controller;
 
+import org.example.exercice6_correction_meuble_rest.model.dto.CartDisplayDTO;
 import org.example.exercice6_correction_meuble_rest.model.dto.CartItemAddDTO;
 import org.example.exercice6_correction_meuble_rest.model.dto.CartItemDisplayDTO;
 import org.example.exercice6_correction_meuble_rest.model.entity.Cart;
@@ -24,14 +25,20 @@ public class CartController {
         this.cartService = cartService;
     }
 
+        @GetMapping("/coucou")
+        public String sayCoucou(){
+        return "coucou";
+        }
+
     @PostMapping
-    public ResponseEntity<Cart> createCart() {
+    public ResponseEntity<CartDisplayDTO> createCart() {
         return ResponseEntity.ok(cartService.createCart());
     }
 
+
     @GetMapping("/{cartId}")
-    public ResponseEntity<List<CartItemDisplayDTO>> getCartItems(@PathVariable UUID cartId) {
-        return ResponseEntity.ok(cartService.getAllItemsFromCart(cartId));
+    public ResponseEntity<CartDisplayDTO> getCartItems(@PathVariable UUID cartId) {
+        return ResponseEntity.ok(cartService.getCartDisplayDTO(cartId));
     }
 
     @PostMapping("/{cartId}/add")
@@ -45,7 +52,7 @@ public class CartController {
     }
 
     @DeleteMapping("/{cartId}/clear")
-    public ResponseEntity<Cart> clearCart(@PathVariable UUID cartId) {
+    public ResponseEntity<CartDisplayDTO> clearCart(@PathVariable UUID cartId) {
         return ResponseEntity.ok(cartService.clearCart(cartId));
     }
 }

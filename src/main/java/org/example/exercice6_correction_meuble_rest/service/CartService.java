@@ -6,6 +6,8 @@ import org.example.exercice6_correction_meuble_rest.Exceptions.FurnitureNotFound
 import org.example.exercice6_correction_meuble_rest.Exceptions.OutOfStockException;
 import org.example.exercice6_correction_meuble_rest.interfaces.ICartService;
 import org.example.exercice6_correction_meuble_rest.mapper.CartItemMapper;
+import org.example.exercice6_correction_meuble_rest.mapper.CartMapper;
+import org.example.exercice6_correction_meuble_rest.model.dto.CartDisplayDTO;
 import org.example.exercice6_correction_meuble_rest.model.dto.CartItemAddDTO;
 import org.example.exercice6_correction_meuble_rest.model.dto.CartItemDisplayDTO;
 import org.example.exercice6_correction_meuble_rest.model.entity.Cart;
@@ -33,13 +35,19 @@ public class CartService {
         this.furnitureRepository=furnitureRepository;
     }
 
-    public Cart createCart() {
+    public CartDisplayDTO createCart() {
         Cart cart = Cart.builder().build();
-        return cartRepository.save(cart);
+        Cart savedCart = cartRepository.save(cart);
+        return CartMapper.toDto(savedCart);
     }
 
     public Cart getCart(UUID cartId) {
         return cartRepository.findById(cartId).orElseThrow(() -> new CartNotFoundException("Cart not found"));
+    }
+
+    public CartDisplayDTO getCartDisplayDTO(UUID cartId) {
+        Cart cart = getCart(cartId);
+        return CartMapper.toDto(cart);
     }
 
     public List<CartItemDisplayDTO> getAllItemsFromCart(UUID id) {
@@ -49,39 +57,40 @@ public class CartService {
     }
     public List<CartItemDisplayDTO> addCartItemToCart(UUID cartId, CartItemAddDTO dto) {
         Cart cart = getCart(cartId);
-        Furniture furniture = furnitureRepository.findById(dto.furnitureID())
+        Furniture furniture = furnitureRepository.findById(dto.furnitureId())
                 .orElseThrow(() -> new FurnitureNotFoundException("Furniture not found"));
 
         int quantity = dto.quantity();
         if(quantity>furniture.getStock()){
             throw new OutOfStockException("yaplu");
         }
-        cart.getItems().add(new CartItem(furniture,quantity));
-        cart.setTotal(cart.getTotal() + furniture.getPrice()*quantity);
+        furniture.setStock(furniture.getStock()-quantity);
+        cart.getItems().add(CartItem.builder().cart(cart).furniture(furniture).quantity(quantity).build());
         cartRepository.save(cart);
         return CartItemMapper.toDTOs(cart.getItems());
     }
 
     public List<CartItemDisplayDTO> removeCartItemFromCart(UUID cartId, UUID cartItemId) {
         Cart cart = getCart(cartId);
-        CartItem cartItem = cartItemRepository.findById(cartItemId).orElseThrow(() -> new CartItemNotFoundException("CartItem not found"));
-        List<CartItem> updatedItems = cart.getItems().stream().filter(item -> !item.getId().equals(cartItemId)).toList();
-        if(updatedItems.isEmpty()){
-            throw new CartItemNotFoundException("yapa");
-        }
-        cart.setItems(updatedItems);
-        cart.setTotal(cart.getTotal() - cartItem.getQuantity()*cartItem.getFurniture().getPrice());
-        cartItemRepository.deleteById(cartItemId);
+        CartItem cartItem = cart.getItems().stream()
+                .filter(item -> item.getId().equals(cartItemId))
+                .findFirst()
+                .orElseThrow(() -> new CartItemNotFoundException("CartItem not found in this cart"));
+        cart.getItems().remove(cartItem);
+        cartItem.getFurniture().setStock(cartItem.getFurniture().getStock()+cartItem.getQuantity());
         cartRepository.save(cart);
         return CartItemMapper.toDTOs(cart.getItems());
     }
 
 
-    public Cart clearCart(UUID cartId) {
+    public CartDisplayDTO clearCart(UUID cartId) {
         Cart cart = getCart(cartId);
+        cart.getItems().forEach(item ->
+                item.getFurniture().setStock(item.getFurniture().getStock() + item.getQuantity())
+        );
         cartItemRepository.deleteAll(cart.getItems());
         cart.getItems().clear();
-        cart.setTotal(0);
-        return cartRepository.save(cart);
+        Cart savedCart = cartRepository.save(cart);
+        return CartMapper.toDto(savedCart);
     }
 }

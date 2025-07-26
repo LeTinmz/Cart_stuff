@@ -6,6 +6,6 @@ import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 
 public record CartItemAddDTO (
-        @NotNull UUID furnitureID,
+        @NotNull UUID furnitureId,
         @Positive int quantity
 ){}
